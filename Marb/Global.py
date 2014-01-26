@@ -43,13 +43,15 @@ class Color:
 		'''
 		return QColor(Color().__regularColors[index%len(Color().__regularColors)])
 	
+
 	@staticmethod
 	def lightColorAt(index):
 		''' Returns the light color corresponding to the index.
 		
 		Used to set a default color.
 		'''
-		return QColor(Color().__lightColors[index])
+		i = index % len( Color().__lightColors )
+		return QColor(Color().__lightColors[i])
 	
 	@staticmethod
 	def darkColorAt(index):
@@ -57,7 +59,8 @@ class Color:
 		
 		Used to set a default color.
 		'''
-		return QColor(Color().__darkColors[index])
+		i = index % len( Color().__darkColors )
+		return QColor(Color().__darkColors[i])
 	
 	@staticmethod
 	def colorAt( index ):

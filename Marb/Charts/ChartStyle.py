@@ -13,7 +13,7 @@ class ChartStyle:
 		You should not construct your own instance. Use Chart::columnStyle() method, instead.
 		'''
 		self._brush = QBrush( Color.LightBlue )
-		self._pen = QPen( QColor(Color.Blue), 1 )
+		self._pen = QPen( QColor(Color.Blue), 1.5 )
 		self._shape = Shape.Ellipse
 		self._type = Type.Line | Type.Point
 

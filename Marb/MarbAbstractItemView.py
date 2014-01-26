@@ -168,6 +168,9 @@ class MarbAbstractItemView( QAbstractItemView ):
 		self.viewport().update()
 
 
+	def sizeHint( self ):
+		return QSize( 600, 500 )
+
 	@abstractmethod
 	def updateValues( self ):
 		''' Updates every component in the view (item positions, bounding rects, etc.).

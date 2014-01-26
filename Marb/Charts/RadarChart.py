@@ -4,7 +4,7 @@ from .Delegates import PointDelegate
 from PySide.QtGui import QPainter, QPen, QColor, QFontMetrics, QPainterPath, QBrush, QStyleOptionViewItem, QStyle, QLinearGradient
 from PySide.QtCore import QSize, QRect, QPointF, QPoint, Qt, QLineF
 
-from .Axis import OrientedAxis
+from .Axis.OldAxis import OrientedAxis
 
 class RadarChart(Chart):
     ''' RadarChart provides a view for QAbstracItemModel to represent a Kiviat Diagram. '''

@@ -11,7 +11,6 @@ class RadialChart(Chart):
         *parent: QWidget
         '''
         super(RadialChart, self).__init__( parent )
-        self._origin = QPointF(20, 20)
         self._axis = RadialAxis()
 
 
@@ -36,32 +35,43 @@ class RadialChart(Chart):
         '''Returns the bounding path for the item pointed by the [index].
         *index: QModelIndex
         '''
-        angle = float( self._x / self.model().columnCount() )
+        angle = float( self._axis.stepSize() / self.model().columnCount() )
         delta = 0.1 * angle
         startAngle = angle * index.column()
-        startAngle += index.row() * self._x
+        startAngle += index.row() * self._axis.stepSize()
         pathCenter = QPainterPath()
         rectangle = QRect( -self._axis.centerHoleDiam/2, -self._axis.centerHoleDiam/2, self._axis.centerHoleDiam, self._axis.centerHoleDiam )
-        rectangle.translate( self._valuesRect.center() )
+        rectangle.translate( self._axis._valuesRect.center() )
         pathCenter.addEllipse( rectangle )
-        y = self._axis.valueToPoint( index.data( Qt.DisplayRole ) )
-        rectangle = QRect( -y/2, -y/2, y, y )
-        rectangle.translate( self._valuesRect.center() )
+        value = 0.0
+        try:
+            value = float(index.data())
+        except:
+            pass
+        rectangle = self._axis.valueToRect( value )
         path = QPainterPath()
-        path.moveTo( self._valuesRect.center() )
-        path.arcTo( rectangle, -(startAngle + delta), -(angle - delta * 2) )
+        path.moveTo( self._axis._valuesRect.center() )
+        path.arcTo( rectangle, (startAngle + delta), (angle - delta * 2) )
         path.closeSubpath();
         path = path.subtracted( pathCenter )
         return path
 
+
+# 0 0.0 32.20132469929538 322.0132469929538 -32.20132469929538 -257.610597594363
+
+# 1 322.0132469929538 32.20132469929538 322.0132469929538 -354.21457169224914 -257.610597594363
+
+# 2 644.0264939859076 32.20132469929538 322.0132469929538 -676.2278186852029 -257.610597594363
+
+# 3 966.0397409788613 32.20132469929538 322.0132469929538 -998.2410656781567 -257.610597594363
 
     def paintChart(self, painter):  
         ''' Paints the chart on the paint device [painter].
         *painter: QPainter
         '''
         painter.setRenderHints( QPainter.Antialiasing | QPainter.TextAntialiasing )
-        self._paintText(painter)
         self._axis.paint( painter )
+
         cols = self.model().columnCount()
         painter.save()
         for c in range( cols ):
@@ -76,6 +86,11 @@ class RadialChart(Chart):
         painter.setFont( font )
         painter.drawText( self._titleRect, Qt.AlignHCenter | Qt.AlignTop | Qt.TextWordWrap, self._title )
 
+        painter.drawRect( self._axis._valuesRect )
+        painter.drawRect( self._axis._chartRect )
+        painter.drawRect( self._titleRect )
+        painter.drawRect( self._legendRect )
+
 
     def _paintColumnLegend(self, painter, c, pos, metricsH):
         r = QRect( pos.x() + 25, pos.y() - 15, 30, 30 )
@@ -89,47 +104,12 @@ class RadialChart(Chart):
         painter.drawPie( r, 210 * 16, -60 * 16 )
         painter.restore()
 
-    def _paintText(self, painter):
-        painter.save()
-        metrics = QFontMetrics( self.font() )
-        h = metrics.height()
-        pathCenter = QPainterPath()
-        rectangle = QRect( -self._axis.centerHoleDiam/2, -self._axis.centerHoleDiam/2, self._axis.centerHoleDiam, self._axis.centerHoleDiam )
-        rectangle.translate( self._valuesRect.center() )
-        pathCenter.addEllipse( rectangle )
-        painter.drawPath( pathCenter )
-        c = QColor(Color.LightGray)
-        c.setAlpha(100)
-        penLine = QPen( QColor(c), 2)
-        penText = QPen( Qt.gray)
-        path = QPainterPath()
-        rectangle = QRect( self._valuesRect.x(), self._valuesRect.y(), self._valuesRect.width() + 10, self._valuesRect.height() + 10 )
-        rectangle.translate( -5, -5)
-        path.addEllipse( rectangle )
-        rows = float(self.model().rowCount())
-        r = 0.0
-        while ( r < rows ):
-            s = str(self.model().headerData( r, Qt.Vertical ))
-            p1 = path.pointAtPercent( r / rows )
-            p2 = pathCenter.pointAtPercent( r / rows )
-            p3 = path.pointAtPercent( (r+0.5) / rows )
-            painter.setPen( penLine )
-            painter.drawLine( p1, p2 )
-            w = metrics.width( s )
-            if p3.x() < self._valuesRect.center().x():
-                p3 = p3 - QPoint( w, 0 )
-            if p3.y() > self._valuesRect.center().y():
-                p3 = p3 + QPoint( 0, h )
-            painter.setPen( penText )
-            painter.drawText( p3, s )
-            r += 1
-        painter.restore()
 
 
     def _paintValues( self, painter, column ):
         rows = self.model().rowCount()
         painter.save()
-        isActive = False
+        isActive = False 
         selectedIndexes = self.selectionModel().selectedIndexes()
         if selectedIndexes != []:
             for idx in selectedIndexes:
@@ -172,16 +152,14 @@ class RadialChart(Chart):
     def _updateRects(self):
         if self.model() == None:
             return None
-        textWidth = self._scanValues()
+        self._axis.setModel( self.model() )
+        self.scan()
         self.defineRects()
-        w = min( self._chartRect.width(), self._chartRect.height() ) - (textWidth + 10 )
-        self._valuesRect = QRect( -w/2, -w/2, w, w )
-        self._valuesRect.translate( self._chartRect.center().x(), self._chartRect.center().y() )
-        self._axis.calculateBounds()
-        self._x = float( 360.0 ) / ( self.model().rowCount() )
-        self._axis.setAlphaBeta( w )
-        self._axis.origin = self._valuesRect.center()
-        self._titleRect.moveTo( self._chartRect.bottomLeft() )
-        self._titleRect.translate( (self._chartRect.width() - self._titleRect.width())/2, 10 )
-
-
+        w = min( self._axis._chartRect.width(), self._axis._chartRect.height() )
+        self._axis._valuesRect = QRect( -w/2, -w/2, w, w )
+        self._axis._valuesRect.translate( self._axis._chartRect.center().x(), self._axis._chartRect.center().y() )
+        self._titleRect.moveTo( self._axis._chartRect.bottomLeft() )
+        self._titleRect.translate( (self._axis._chartRect.width() - self._titleRect.width())/2, 10 )
+        self._axis._valuesRect = self._axis._valuesRect
+        self._axis._chartRect = self._axis._chartRect
+        self._axis.update()

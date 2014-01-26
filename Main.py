@@ -12,26 +12,39 @@ from Marb.Delegates.PercentDelegate import RoundedPercentDelegate
 
 app = QApplication(sys.argv)
 
-model = QStandardItemModel( 3, 2 )
+model = QStandardItemModel( 10, 5 )
 for i in range( 0, model.rowCount() ):
+    
     for j in range( 0, model.columnCount() ):
-        #model.setData( model.index( i, j ), random.randint(1, 15) )
-        model.setData( model.index( i, j ), 1 + j )
-
-model.setHeaderData( i, Qt.Vertical, "test plus long" )
+        v = random.randint(-10, 10)
+        model.setData( model.index( i, j ), v )
+    model.setHeaderData( i, Qt.Vertical, "test plus long" )
+model.setData( model.index( i, j ), 1 )
+# model.setHeaderData( i, Qt.Vertical, "test plus long" )
 # chart = RadarChart()
 # chart.setModel( model )
 # chart.show()
 
-# chart1 = RadialChart()
-# chart1.setModel( model )
-# chart1.show()
-
-chart2 = LinearChart()
-style = chart2.columnStyle( 1 )
+chart1 = LinearChart()
+chart1.setModel( model )
+chart1.show()
+chart1.setTitle( "Title" )
+style = chart1.columnStyle( 1 )
 style.setType( Marb.Type.Bar )
-chart2.setColumnStyle( 1, style )
-chart2.setModel( model )
-chart2.show()
+chart1.setColumnStyle( 1, style )
+style = chart1.columnStyle( 0 )
+style.setType( Marb.Type.Bar )
+chart1.setColumnStyle( 0, style )
+
+# chart2 = LinearChart()
+# chart2.setTitle( "my title" )
+# style = chart2.columnStyle( 1 )
+# style.setType( Marb.Type.Bar )
+# chart2.setColumnStyle( 1, style )
+# style = chart2.columnStyle( 0 )
+# style.setType( Marb.Type.Bar )
+# chart2.setColumnStyle( 0, style )
+# chart2.setModel( model )
+# chart2.show()
 
 app.exec_()

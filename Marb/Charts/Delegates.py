@@ -161,7 +161,6 @@ class BarDelegate( ChartDelegate ):
 		gradient.setColorAt( 0.4, c )
 		gradient.setColorAt( 1, Qt.transparent )
 		painter.setBrush( QBrush( gradient ) )
-		painter.setClipRect( r )
 		painter.drawRect( r )
 
 		painter.restore()

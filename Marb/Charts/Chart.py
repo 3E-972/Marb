@@ -16,8 +16,6 @@ class Chart(MarbAbstractItemView):
         '''
         super(Chart, self).__init__( parent )
         self.setEditTriggers( QAbstractItemView.NoEditTriggers )
-        self._chartRect = QRect()
-        self._valuesRect = QRect()
         self._legendRect = QRect()
         self._title = ""
         self._titleRect = QRect()
@@ -25,7 +23,6 @@ class Chart(MarbAbstractItemView):
         self._style = {}
         self._marginX = 20
         self._marginY = 20
-        self.resize( QSize(500, 400) )
 
         self._axis = None
 
@@ -40,7 +37,7 @@ class Chart(MarbAbstractItemView):
         cols = self.model().columnCount()
         nbLines = 1
         w = 40
-        maxWidth = self._chartRect.width()
+        maxWidth = self._axis._chartRect.width()
         for c in range( 0, cols ):
             s = str(self.model().headerData( c, Qt.Horizontal ))
             sWidth = metrics.width( s ) + 40
@@ -59,6 +56,9 @@ class Chart(MarbAbstractItemView):
         if column in self._style:
             return self._style[ column ]
         else:
+            shapes = [ x for x in Shape.__dict__ if x[0].isupper()]
+            Colors = [ x for x in Color.__dict__ if x[0].isupper()]
+            penStyles = [i for i in vars(Qt.PenStyle) if isinstance(vars(Qt.PenStyle)[i], Qt.PenStyle)]
             style = ChartStyle()
             c1 = Color.lightColorAt( column )
             c2 = Color.regularColorAt( column )
@@ -74,17 +74,17 @@ class Chart(MarbAbstractItemView):
         * legendRect: Area where the legend will be drawn
         * titleRect: Area where the title will be drawn
         '''
-        self._chartRect = QRect( QPoint(self._marginX, self._marginY), self.size() - QSize( self._marginX*2, self._marginY*2 ) )
+        self._axis._chartRect = QRect( QPoint(self._marginX, self._marginY), self.size() - QSize( self._marginX*2, self._marginY*2 ) )
         self.calculateLegendRect()
-        self._chartRect.setHeight( self._chartRect.height() - self._legendRect.height() - 10 )
-        self._chartRect.translate( 0, self._legendRect.height() + 10 )
+        self._axis._chartRect.setHeight( self._axis._chartRect.height() - self._legendRect.height() - 10 )
+        self._axis._chartRect.translate( 0, self._legendRect.height() + 10 )
         if self._title != "":
             font = self.font()
             font.setItalic( True )
             m = QFontMetrics( font )
-            r = QRect( 0, 0, self._chartRect.width() - 40, 0 )
+            r = QRect( 0, 0, self._axis._chartRect.width() - 40, 0 )
             self._titleRect = m.boundingRect( r, Qt.AlignHCenter | Qt.AlignTop | Qt.TextWordWrap, self._title )
-            self._chartRect.setHeight( self._chartRect.height() - self._titleRect.height() - 20 )
+            self._axis._chartRect.setHeight( self._axis._chartRect.height() - self._titleRect.height() - 20 )
 
 
     def indexAt(self, point):
@@ -167,6 +167,7 @@ class Chart(MarbAbstractItemView):
         '''
         raise( NotImplementedError, "Must be implemented." )
 
+
     def process( self ):
         '''Defines the metrics and components to display the chart.
          Called when model ha changed.
@@ -198,15 +199,16 @@ class Chart(MarbAbstractItemView):
         return pixmap.save( filename )
 
 
-    def _scanValues(self):
+    def scan( self ):
         '''Scans values in the model to find the minimum and the maximum. Returns the width needed to display the Y scale.
         If the values are greater than zero, the minimum is equal to 0. If the values are less than 0, the maximum is equal to 0.
         If a value is not a number (undefined, a string, etc.), she's considered as equal to 0. 
         '''
         rows = self.model().rowCount()
         cols = self.model().columnCount()
-        metrics = QFontMetrics( self.font() )
+        metrics = QFontMetrics( self._axis.font() )
         textWidth = 0
+        valueWidth = 0
         # value = self.model().index( 0, 0 ).data()
         # try:
         #   value = float(value)
@@ -225,9 +227,12 @@ class Chart(MarbAbstractItemView):
                     value = 0
                 _min = float(min( _min, value ))
                 _max = float(max( _max, value ))
+                valueWidth = max( valueWidth, metrics.width( str( value ) ) )
         self._axis.min = _min
         self._axis.max = _max
-        return textWidth
+        self._axis.tickSize = max( self._axis.calculateOrder( _min ), self._axis.calculateOrder( _max) )
+        self._axis.yLabelsLength = valueWidth
+        self._axis.xLabelsLength = textWidth
 
 
     def setColumnStyle(self, column, style):
